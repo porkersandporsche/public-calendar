@@ -5,13 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Porkers and Porsche Calendar</title>
 
-  <!-- FullCalendar core -->
+  <!-- FullCalendar core CSS -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-  <!-- iCalendar + List plugins -->
-  <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.10/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js"></script>
 
   <style>
     :root { --brand:#1e3a8a; --card:#fff; --bg:#f7f7f7; --text:#0f172a; }
@@ -20,18 +15,11 @@
     header{background:linear-gradient(135deg,#1e3a8a,#304ea6);color:#fff;padding:18px 12px;text-align:center}
     main{max-width:1000px;margin:20px auto;padding:12px}
     .card{background:var(--card);border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.07);padding:12px}
-    .actions{display:flex;gap:8px;justify-content:flex-end;margin:8px 4px 0}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin:8px 4px 12px}
     .btn{border:1px solid rgba(0,0,0,.1);background:#fff;padding:.45rem .7rem;border-radius:10px;cursor:pointer}
     .btn:hover{background:#f1f5f9}
-    .ver{font-size:.8rem;color:#64748b;text-align:center;margin-top:8px}
-
-    /* FullCalendar tweaks */
-    .fc .fc-toolbar-title{font-size:1.5rem;font-weight:700}
-    .fc .fc-button{border-radius:10px;padding:.45rem .7rem}
-    .fc .fc-daygrid-day-number{font-weight:600}
-    .fc .fc-event{border-radius:8px;padding:2px 4px}
-    @media (max-width:600px){ .fc .fc-toolbar-title{font-size:1.25rem} .actions{justify-content:center} }
-
+    #calendar{min-height:600px} /* ensure visible space even before render */
+    .error{display:none;margin:12px;padding:10px;border-radius:10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
     /* Modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px}
     .modal{max-width:560px;width:100%;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -47,9 +35,10 @@
   <main class="card">
     <div class="actions">
       <button class="btn" id="refreshBtn">Refresh</button>
-      <span class="ver">v2</span>
+      <span style="align-self:center;color:#64748b;font-size:.8rem">v2.1</span>
     </div>
     <div id="calendar"></div>
+    <div id="err" class="error">Could not load the calendar. Please refresh. If it persists, check the Worker URL in the file.</div>
   </main>
 
   <!-- Modal -->
@@ -65,58 +54,80 @@
     </div>
   </div>
 
+  <!-- Load scripts *after* body so DOM exists; use defer to keep order -->
+  <script defer src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.10/index.global.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.10/index.global.min.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const calendarEl = document.getElementById('calendar');
-      const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/'; // your Cloudflare Worker
-
-      const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
-
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        plugins: [ FullCalendar.icalendarPlugin, FullCalendar.listPlugin ],
-        initialView: 'dayGridMonth',
-        height: 'auto',
-        expandRows: true,
-        dayMaxEventRows: 3,
-        nowIndicator: true,
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,listMonth,listWeek'
-        },
-        buttonText: { today:'today', month:'month', list:'list', week:'week' },
-        eventTimeFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
-        events: { url: icsUrl(), format: 'ics' },
-
-        eventDidMount(info) {
-          const start = FullCalendar.formatDate(info.event.start, { hour:'2-digit', minute:'2-digit', hour12:false });
-          const end   = FullCalendar.formatDate(info.event.end || info.event.start, { hour:'2-digit', minute:'2-digit', hour12:false });
-          const where = info.event.extendedProps.location || '';
-          info.el.title = `${start}–${end}  ${info.event.title}${where ? '\n' + where : ''}`;
-        },
-
-        eventClick(info) {
-          info.jsEvent.preventDefault();
-          const fmt = (d)=> FullCalendar.formatDate(d, { weekday:'short', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false });
-          document.getElementById('mTitle').textContent = info.event.title || 'Event';
-          document.getElementById('mWhen').textContent  = info.event.end ? `${fmt(info.event.start)} – ${fmt(info.event.end)}` : fmt(info.event.start);
-          document.getElementById('mWhere').textContent = info.event.extendedProps.location || '—';
-          const desc = (info.event.extendedProps.description || '').trim();
-          document.getElementById('mDesc').textContent  = desc || '—';
-          document.getElementById('modalBackdrop').style.display = 'flex';
+    // Wait until all deferred scripts are loaded
+    window.addEventListener('load', function () {
+      try {
+        if (!window.FullCalendar || !FullCalendar.icalendarPlugin) {
+          throw new Error('FullCalendar or iCalendar plugin not loaded');
         }
-      });
 
-      calendar.render();
+        const calendarEl = document.getElementById('calendar');
+        const errBox = document.getElementById('err');
 
-      document.getElementById('refreshBtn').addEventListener('click', () => {
-        calendar.removeAllEventSources();
-        calendar.addEventSource({ url: icsUrl(), format: 'ics' });
-      });
+        // Your Cloudflare Worker URL
+        const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/';
+        const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
-      const close = () => document.getElementById('modalBackdrop').style.display = 'none';
-      document.getElementById('closeModal').onclick = close;
-      document.getElementById('modalBackdrop').onclick = (e)=> { if (e.target.id === 'modalBackdrop') close(); };
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          plugins: [ FullCalendar.icalendarPlugin, FullCalendar.listPlugin ],
+          initialView: 'dayGridMonth',
+          height: 'auto',
+          expandRows: true,
+          dayMaxEventRows: 3,
+          nowIndicator: true,
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,listMonth,listWeek'
+          },
+          buttonText: { today:'today', month:'month', list:'list', week:'week' },
+          eventTimeFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
+          events: { url: icsUrl(), format: 'ics' },
+          eventSourceFailure(error) {
+            console.error('ICS load failed:', error);
+            errBox.style.display = 'block';
+          },
+          eventDidMount(info) {
+            const start = FullCalendar.formatDate(info.event.start, { hour:'2-digit', minute:'2-digit', hour12:false });
+            const end   = FullCalendar.formatDate(info.event.end || info.event.start, { hour:'2-digit', minute:'2-digit', hour12:false });
+            const where = info.event.extendedProps.location || '';
+            info.el.title = `${start}–${end}  ${info.event.title}${where ? '\n' + where : ''}`;
+          },
+          eventClick(info) {
+            info.jsEvent.preventDefault();
+            const fmt = (d)=> FullCalendar.formatDate(d, { weekday:'short', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false });
+            document.getElementById('mTitle').textContent = info.event.title || 'Event';
+            document.getElementById('mWhen').textContent  = info.event.end ? `${fmt(info.event.start)} – ${fmt(info.event.end)}` : fmt(info.event.start);
+            document.getElementById('mWhere').textContent = info.event.extendedProps.location || '—';
+            const desc = (info.event.extendedProps.description || '').trim();
+            document.getElementById('mDesc').textContent  = desc || '—';
+            document.getElementById('modalBackdrop').style.display = 'flex';
+          }
+        });
+
+        calendar.render();
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+          errBox.style.display = 'none';
+          calendar.removeAllEventSources();
+          calendar.addEventSource({ url: icsUrl(), format: 'ics' });
+        });
+
+        const close = () => document.getElementById('modalBackdrop').style.display = 'none';
+        document.getElementById('closeModal').onclick = close;
+        document.getElementById('modalBackdrop').onclick = (e)=> { if (e.target.id === 'modalBackdrop') close(); };
+      } catch (e) {
+        console.error(e);
+        document.getElementById('err').textContent = 'Calendar failed to initialize: ' + e.message;
+        document.getElementById('err').style.display = 'block';
+      }
     });
   </script>
 </body>

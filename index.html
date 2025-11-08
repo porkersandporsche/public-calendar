@@ -61,99 +61,96 @@
   </div>
 
   <script>
-    window.addEventListener('load', async function () {
-      const errBox = document.getElementById('err');
-      const calendarEl = document.getElementById('calendar');
+  window.addEventListener('load', async function () {
+    const errBox = document.getElementById('err');
+    const calendarEl = document.getElementById('calendar');
 
-      const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/'; // your Cloudflare Worker
-      const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/';
+    const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
 
-      async function fetchIcsEvents() {
-        const res = await fetch(icsUrl());
-        if (!res.ok) throw new Error('ICS HTTP ' + res.status);
-        const text = await res.text();
+    async function fetchIcsEvents() {
+      const res = await fetch(icsUrl());
+      if (!res.ok) throw new Error('ICS HTTP ' + res.status);
+      const text = await res.text();
 
-        const jcal = ICAL.parse(text);
-        const comp = new ICAL.Component(jcal);
-        const vevents = comp.getAllSubcomponents('vevent') || [];
-
-        // Map ICS VEVENTs to FullCalendar event objects
-        const events = vevents.map(v => {
-          const ev = new ICAL.Event(v);
-          const start = ev.startDate ? ev.startDate.toJSDate() : null;
-          const end   = ev.endDate ? ev.endDate.toJSDate() : null;
-          return {
-            title: ev.summary || '(no title)',
-            start: start,
-            end: end,
-            allDay: ev.startDate && ev.startDate.isDate,
-            location: ev.location || '',
-            description: ev.description || ''
-          };
-        });
-
-        return events;
+      // Validate it really is ICS
+      const head = text.slice(0, 100).trim().toUpperCase();
+      if (!head.startsWith('BEGIN:VCALENDAR')) {
+        throw new Error('Not ICS. Starts with: ' + text.slice(0, 120).replace(/\s+/g, ' '));
       }
 
-      function showModal(evt) {
-        const fmt = d => new Intl.DateTimeFormat(undefined, {
-          weekday:'short', day:'2-digit', month:'short', year:'numeric',
-          hour:'2-digit', minute:'2-digit', hour12:false
-        }).format(d);
-        document.getElementById('mTitle').textContent = evt.title || 'Event';
-        document.getElementById('mWhen').textContent = evt.end ? `${fmt(evt.start)} – ${fmt(evt.end)}` : fmt(evt.start);
-        document.getElementById('mWhere').textContent = evt.extendedProps?.location || evt.location || '—';
-        const desc = (evt.extendedProps?.description || evt.description || '').trim();
-        document.getElementById('mDesc').textContent = desc || '—';
-        document.getElementById('modalBackdrop').style.display = 'flex';
-      }
+      const jcal = ICAL.parse(text);                  // safe now
+      const comp = new ICAL.Component(jcal);
+      const vevents = comp.getAllSubcomponents('vevent') || [];
 
-      try {
-        const events = await fetchIcsEvents();
+      return vevents.map(v => {
+        const ev = new ICAL.Event(v);
+        const start = ev.startDate ? ev.startDate.toJSDate() : null;
+        const end   = ev.endDate ? ev.endDate.toJSDate() : null;
+        return {
+          title: ev.summary || '(no title)',
+          start, end,
+          allDay: ev.startDate && ev.startDate.isDate,
+          location: ev.location || '',
+          description: ev.description || ''
+        };
+      });
+    }
 
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-          plugins: [ FullCalendar.listPlugin ],
-          initialView: 'dayGridMonth',
-          height: 'auto',
-          expandRows: true,
-          dayMaxEventRows: 3,
-          nowIndicator: true,
-          headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,listMonth,listWeek'
-          },
-          buttonText: { today:'today', month:'month', list:'list', week:'week' },
-          eventTimeFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
-          events: events,
-          eventClick(info) { info.jsEvent.preventDefault(); showModal(info.event); }
-        });
+    try {
+      const events = await fetchIcsEvents();
 
-        calendar.render();
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        plugins: [ FullCalendar.listPlugin ],
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        expandRows: true,
+        dayMaxEventRows: 3,
+        nowIndicator: true,
+        headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,listMonth,listWeek' },
+        buttonText: { today:'today', month:'month', list:'list', week:'week' },
+        eventTimeFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
+        events,
+        eventClick(info) {
+          info.jsEvent.preventDefault();
+          const fmt = d => new Intl.DateTimeFormat(undefined, {
+            weekday:'short', day:'2-digit', month:'short', year:'numeric',
+            hour:'2-digit', minute:'2-digit', hour12:false
+          }).format(d);
+          document.getElementById('mTitle').textContent = info.event.title || 'Event';
+          document.getElementById('mWhen').textContent  = info.event.end ? `${fmt(info.event.start)} – ${fmt(info.event.end)}` : fmt(info.event.start);
+          document.getElementById('mWhere').textContent = info.event.extendedProps.location || '—';
+          const desc = (info.event.extendedProps.description || '').trim();
+          document.getElementById('mDesc').textContent  = desc || '—';
+          document.getElementById('modalBackdrop').style.display = 'flex';
+        }
+      });
 
-        document.getElementById('refreshBtn').addEventListener('click', async () => {
-          try {
-            errBox.style.display = 'none';
-            const fresh = await fetchIcsEvents();
-            calendar.removeAllEvents();
-            calendar.addEventSource(fresh);
-          } catch (e) {
-            console.error(e);
-            errBox.textContent = 'Refresh failed: ' + e.message;
-            errBox.style.display = 'block';
-          }
-        });
+      calendar.render();
 
-        const close = () => document.getElementById('modalBackdrop').style.display = 'none';
-        document.getElementById('closeModal').onclick = close;
-        document.getElementById('modalBackdrop').onclick = (e)=> { if (e.target.id === 'modalBackdrop') close(); };
+      document.getElementById('refreshBtn').addEventListener('click', async () => {
+        try {
+          errBox.style.display = 'none';
+          const fresh = await fetchIcsEvents();
+          calendar.removeAllEvents();
+          calendar.addEventSource(fresh);
+        } catch (e) {
+          errBox.textContent = 'Refresh failed: ' + e.message;
+          errBox.style.display = 'block';
+        }
+      });
 
-      } catch (e) {
-        console.error(e);
-        errBox.textContent = 'Could not load the calendar: ' + e.message;
-        errBox.style.display = 'block';
-      }
-    });
-  </script>
+      const close = () => document.getElementById('modalBackdrop').style.display = 'none';
+      document.getElementById('closeModal').onclick = close;
+      document.getElementById('modalBackdrop').onclick = e => { if (e.target.id === 'modalBackdrop') close(); };
+
+    } catch (e) {
+      console.error(e);
+      errBox.textContent = 'Could not load the calendar: ' + e.message;
+      errBox.style.display = 'block';
+    }
+  });
+</script>
+
 </body>
 </html>

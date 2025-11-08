@@ -22,14 +22,61 @@
     .btn:hover{background:#f1f5f9}
     #calendar{min-height:600px}
     .error{display:none;margin:12px;padding:10px;border-radius:10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
-    /* Modal */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px}
-    .modal{max-width:560px;width:100%;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .modal header{background:transparent;color:#0f172a;padding:16px 20px;text-align:left;border-bottom:1px solid #e5e7eb}
-    .modal .content{padding:16px 20px;line-height:1.4}
-    .modal .row{margin:6px 0}
-    .modal .label{font-weight:600;display:inline-block;width:86px}
-    .close-x{position:absolute;top:12px;right:16px;font-size:22px;color:#475569;cursor:pointer}
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal {
+  max-width: 560px;
+  width: 100%;
+  background: #ffffff; /* Solid white background */
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 1001;
+}
+
+.modal header {
+  background: #ffffff; /* solid white */
+  color: #0f172a;
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal .content {
+  padding: 16px 20px;
+  line-height: 1.4;
+  background: #ffffff; /* solid fill behind text */
+}
+
+.modal .row {
+  margin: 6px 0;
+}
+
+.modal .label {
+  font-weight: 600;
+  display: inline-block;
+  width: 86px;
+}
+
+.close-x {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 22px;
+  color: #475569;
+  cursor: pointer;
+}
+
     /* FC tweaks */
     .fc .fc-toolbar-title{font-size:1.5rem;font-weight:700}
     .fc .fc-button{border-radius:10px;padding:.45rem .7rem}

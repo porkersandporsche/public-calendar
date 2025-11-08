@@ -84,11 +84,15 @@
   </style>
 </head>
 <body>
-  <header><h1>Porkers and Porsche Calendar</h1></header>
+  <header class="site-header">
+  <img src="images/logo.png" alt="Porkers and Porsche" class="logo" width="72" height="72">
+  <h1 class="site-title">Porkers and Porsche Calendar</h1>
+</header>
+
   <main class="card">
     <div class="actions">
       <button class="btn" id="refreshBtn">Refresh</button>
-      <span style="align-self:center;color:#64748b;font-size:.8rem">v3.3</span>
+      <span style="align-self:center;color:#64748b;font-size:.8rem">v3.4</span>
     </div>
     <div id="calendar"></div>
     <div id="err" class="error">Could not load the calendar. Please refresh. If it persists, check the Worker URL in the file.</div>

@@ -17,16 +17,25 @@
   <body>
     <header><h1>Porkers and Porsche Calendar</h1></header>
     <div id="calendar"></div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('calendar');
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-          initialView: 'dayGridMonth',
-          height: 'auto',
-          events: { url: 'https://outlook.live.com/owa/calendar/00000000-0000-0000-0000-000000000000/89499693-7c48-41d1-844b-6fdf1bfdea0e/cid-7E33B22FFE95151D/calendar.ics', format: 'ics' }
-        });
-        calendar.render();
-      });
-    </script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+
+    // Your Cloudflare Worker URL (acts as a CORS-safe proxy)
+    const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/';
+
+    // Cache-buster so browser always fetches a fresh feed
+    const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      height: 'auto',
+      events: { url: icsUrl(), format: 'ics' }
+    });
+
+    calendar.render();
+  });
+</script>
+
   </body>
 </html>

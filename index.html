@@ -9,33 +9,32 @@
     <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.10/index.global.min.js"></script>
     <style>
-      body {margin:0;font-family:sans-serif;background:#f7f7f7}
-      header {background:#1e3a8a;color:white;padding:1rem;text-align:center}
-      #calendar {max-width:900px;margin:2rem auto;background:white;padding:1rem;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.1);}
+      body{margin:0;font-family:sans-serif;background:#f7f7f7}
+      header{background:#1e3a8a;color:#fff;padding:1rem;text-align:center}
+      #calendar{max-width:900px;margin:2rem auto;background:#fff;padding:1rem;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
     </style>
   </head>
   <body>
     <header><h1>Porkers and Porsche Calendar</h1></header>
     <div id="calendar"></div>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const calendarEl = document.getElementById('calendar');
 
-    // Your Cloudflare Worker URL (acts as a CORS-safe proxy)
-    const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/';
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
 
-    // Cache-buster so browser always fetches a fresh feed
-    const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        // Your Cloudflare Worker URL (CORS-safe proxy to Outlook ICS)
+        const WORKER = 'https://lucky-sunset-ba62.spring-paper-aa82.workers.dev/';
+        const icsUrl = () => `${WORKER}${WORKER.includes('?') ? '&' : '?'}t=${Date.now()}`; // cache-buster
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      height: 'auto',
-      events: { url: icsUrl(), format: 'ics' }
-    });
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          plugins: [ FullCalendar.icalendarPlugin ],   // <-- REQUIRED
+          initialView: 'dayGridMonth',
+          height: 'auto',
+          events: { url: icsUrl(), format: 'ics' }
+        });
 
-    calendar.render();
-  });
-</script>
-
+        calendar.render();
+      });
+    </script>
   </body>
 </html>
